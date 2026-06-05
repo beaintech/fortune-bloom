@@ -1,0 +1,95 @@
+<!-- pages/profile/profile.wxml - 个人中心 -->
+<view class="page">
+  
+  <!-- 用户信息 -->
+  <view class="user-card">
+    <image class="avatar" src="{{avatarUrl || 'https://mmbiz.qpic.cn/mmbiz/icTdbqWNOwNRna42FI242Lcia07jQodd2FJGIYQfG0LAJGFxM4FbnQP6yfMxBgJ0F3YRqJCJ1aPAK2dQagdusBZg/0'}}" />
+    <view class="user-info">
+      <text class="nickname">{{nickName || '富贵用户'}}</text>
+      <view class="vip-badge" wx:if="{{isVip}}">
+        <text>🌟 VIP会员</text>
+      </view>
+      <view class="free-badge" wx:else>
+        <text>免费用户</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 使用统计 -->
+  <view class="stats-card card">
+    <view class="stat-item">
+      <text class="stat-num">{{totalGenerated}}</text>
+      <text class="stat-label">已生成</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{todayRemaining}}</text>
+      <text class="stat-label">今日剩余</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{isVip ? '无限' : '3次'}}</text>
+      <text class="stat-label">每日额度</text>
+    </view>
+  </view>
+
+  <!-- 会员套餐 -->
+  <view class="section-title">💎 升级VIP · 畅享无限</view>
+  
+  <view class="plans">
+    <!-- 日卡 -->
+    <view class="plan-card {{!isVip ? 'recommend' : ''}}" bindtap="buyPlan" data-plan="day">
+      <view class="plan-header">
+        <text class="plan-name">日卡</text>
+        <text class="plan-badge" wx:if="{{!isVip}}">推荐</text>
+      </view>
+      <view class="plan-price">
+        <text class="price-symbol">¥</text>
+        <text class="price-num">6.9</text>
+      </view>
+      <text class="plan-desc">当日无限次生成</text>
+    </view>
+
+    <!-- 月卡 -->
+    <view class="plan-card" bindtap="buyPlan" data-plan="month">
+      <view class="plan-header">
+        <text class="plan-name">月卡</text>
+      </view>
+      <view class="plan-price">
+        <text class="price-symbol">¥</text>
+        <text class="price-num">19.9</text>
+      </view>
+      <text class="plan-desc">30天无限次生成</text>
+      <text class="plan-save">平均每天仅 ¥0.66</text>
+    </view>
+
+    <!-- 年卡 -->
+    <view class="plan-card" bindtap="buyPlan" data-plan="year">
+      <view class="plan-header">
+        <text class="plan-name">年卡</text>
+      </view>
+      <view class="plan-price">
+        <text class="price-symbol">¥</text>
+        <text class="price-num">99</text>
+      </view>
+      <text class="plan-desc">365天无限次生成</text>
+      <text class="plan-save">平均每天仅 ¥0.27</text>
+    </view>
+  </view>
+
+  <!-- 功能介绍 -->
+  <view class="features card-gold">
+    <text class="feature-title">VIP专属权益</text>
+    <view class="feature-item" wx:for="{{vipFeatures}}" wx:key="index">
+      <text class="feature-icon">{{item.icon}}</text>
+      <text class="feature-text">{{item.text}}</text>
+    </view>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="footer">
+    <text>🌸 富贵花开 v1.0</text>
+    <text class="footer-link" bindtap="showAgreement">用户协议</text>
+    <text class="footer-link" bindtap="showPrivacy">隐私政策</text>
+  </view>
+</view>

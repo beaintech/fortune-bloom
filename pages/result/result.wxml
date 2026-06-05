@@ -1,0 +1,40 @@
+<!-- pages/result/result.wxml - 生成结果页 -->
+<view class="page">
+  
+  <view class="result-header">
+    <text class="result-title">🎉 生成成功</text>
+    <text class="result-sub">您的富贵美照已生成</text>
+  </view>
+
+  <!-- 结果展示 -->
+  <view class="result-card">
+    <image src="{{resultUrl}}" mode="aspectFit" class="result-img" show-menu-by-longpress="{{true}}" />
+    <view class="result-watermark">🌸 富贵花开 · AI出品</view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="actions">
+    <button class="action-btn primary" bindtap="saveImage">
+      <text>💾 保存到相册</text>
+    </button>
+    <button class="action-btn gold" open-type="share">
+      <text>📤 分享给亲友</text>
+    </button>
+    <button class="action-btn outline" bindtap="goGenerate">
+      <text>🔄 再换一张</text>
+    </button>
+    <button class="action-btn outline" bindtap="goGallery">
+      <text>🖼️ 查看作品集</text>
+    </button>
+  </view>
+
+  <!-- VIP推广 -->
+  <view class="vip-banner" wx:if="{{!isVip}}" bindtap="goProfile">
+    <text class="vip-text">🌟 开通VIP · 每日无限生成 · 仅需 ¥19.9/月</text>
+  </view>
+
+  <!-- 分享引导 -->
+  <view class="share-guide" wx:if="{{showShareTip}}">
+    <text class="guide-text">👆 点击右上角「···」分享给朋友</text>
+  </view>
+</view>

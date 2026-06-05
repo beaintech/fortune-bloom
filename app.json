@@ -1,0 +1,42 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/result/result",
+    "pages/gallery/gallery",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "富贵花开",
+    "navigationBarBackgroundColor": "#C41E3A",
+    "backgroundColor": "#FFF8F0"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#C41E3A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "换新颜"
+      },
+      {
+        "pagePath": "pages/gallery/gallery",
+        "text": "我的作品"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents",
+  "requiredPrivateInfos": [
+    "chooseImage",
+    "saveImageToPhotosAlbum"
+  ]
+}

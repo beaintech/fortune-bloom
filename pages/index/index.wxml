@@ -1,0 +1,83 @@
+<!-- pages/index/index.wxml - 富贵花开首页 -->
+<view class="page">
+  
+  <!-- 顶部装饰 -->
+  <view class="header">
+    <view class="title-row">
+      <text class="deco">🌸</text>
+      <text class="title">富贵花开</text>
+      <text class="deco">🌸</text>
+    </view>
+    <text class="subtitle">一键生成专属富贵美照</text>
+    <text class="subtitle-sm">AI智能美化 · 花开富贵 · 喜气盈门</text>
+  </view>
+
+  <!-- 图片上传区 -->
+  <view class="upload-section">
+    <view class="upload-area" bindtap="chooseImage">
+      <block wx:if="{{!previewImage}}">
+        <view class="upload-icon">📷</view>
+        <text class="upload-text">点击拍照或选择照片</text>
+        <text class="upload-hint">支持头像、自拍、合影</text>
+      </block>
+      <image wx:else src="{{previewImage}}" mode="aspectFill" class="preview-img" />
+    </view>
+    <view wx:if="{{previewImage}}" class="rechoose-btn" bindtap="chooseImage">
+      <text>重新选择</text>
+    </view>
+  </view>
+
+  <!-- 风格选择 -->
+  <view class="section-title">
+    <text class="section-icon">🎨</text>
+    <text>选择风格</text>
+  </view>
+  
+  <scroll-view scroll-x class="style-scroll" enhanced show-scrollbar="{{false}}">
+    <view class="style-list">
+      <view 
+        wx:for="{{styles}}" 
+        wx:key="id"
+        class="style-card {{selectedStyle === item.id ? 'active' : ''}}"
+        bindtap="selectStyle"
+        data-id="{{item.id}}"
+      >
+        <view class="style-preview" style="background: {{item.color}}">
+          <text class="style-emoji">{{item.emoji}}</text>
+        </view>
+        <text class="style-name">{{item.name}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 剩余次数 -->
+  <view class="count-info">
+    <text>今日剩余免费次数：</text>
+    <text class="count-num">{{remainingCount}}</text>
+    <text class="count-vip" wx:if="{{isVip}}"> (VIP无限次)</text>
+  </view>
+
+  <!-- 生成按钮 -->
+  <view class="action-area">
+    <button 
+      class="btn-generate {{!previewImage ? 'disabled' : ''}}" 
+      bindtap="startGenerate"
+      disabled="{{!previewImage || generating}}"
+      loading="{{generating}}"
+    >
+      <text wx:if="{{!generating}}">✨ 一键生成</text>
+      <text wx:else>AI美颜中...</text>
+    </button>
+  </view>
+
+  <!-- 效果展示 -->
+  <view class="demo-section">
+    <text class="section-title">🖼️ 效果预览</text>
+    <view class="demo-grid">
+      <view class="demo-item" wx:for="{{demos}}" wx:key="index">
+        <image src="{{item}}" mode="aspectFill" class="demo-img" />
+      </view>
+    </view>
+  </view>
+
+</view>

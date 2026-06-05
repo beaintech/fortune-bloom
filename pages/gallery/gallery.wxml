@@ -1,0 +1,41 @@
+<!-- pages/gallery/gallery.wxml - 我的作品 -->
+<view class="page">
+  
+  <view class="header">
+    <text class="title">🖼️ 我的作品</text>
+    <text class="count" wx:if="{{list.length}}">共 {{list.length}} 张</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty" wx:if="{{!list.length}}">
+    <text class="empty-icon">🌸</text>
+    <text class="empty-text">还没有作品</text>
+    <text class="empty-hint">快去首页生成您的第一张富贵美照吧</text>
+    <button class="btn-primary" bindtap="goHome">立即体验</button>
+  </view>
+
+  <!-- 作品列表 -->
+  <view class="gallery-grid" wx:else>
+    <view 
+      class="gallery-item" 
+      wx:for="{{list}}" 
+      wx:key="id"
+      bindtap="previewImage" 
+      data-index="{{index}}"
+      bindlongpress="deleteItem"
+      data-id="{{item.id}}"
+    >
+      <image src="{{item.result}}" mode="aspectFill" class="gallery-img" />
+      <view class="item-info">
+        <text class="item-style">{{styleNames[item.style]}}</text>
+        <text class="item-time">{{item.time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="load-more" wx:if="{{hasMore && list.length}}">
+    <text>加载更多...</text>
+  </view>
+
+</view>

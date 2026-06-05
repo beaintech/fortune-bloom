@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Backend
+backend/.env
+backend/static/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# WeChat
+*.wxapp
