@@ -19,24 +19,26 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "换新颜"
+        "text": "换新颜",
+        "iconPath": "assets/tab-home.png",
+        "selectedIconPath": "assets/tab-home-active.png"
       },
       {
         "pagePath": "pages/gallery/gallery",
-        "text": "我的作品"
+        "text": "我的作品",
+        "iconPath": "assets/tab-gallery.png",
+        "selectedIconPath": "assets/tab-gallery-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "assets/tab-profile.png",
+        "selectedIconPath": "assets/tab-profile-active.png"
       }
     ]
   },
   "style": "v2",
   "componentFramework": "glass-easel",
   "sitemapLocation": "sitemap.json",
-  "lazyCodeLoading": "requiredComponents",
-  "requiredPrivateInfos": [
-    "chooseImage",
-    "saveImageToPhotosAlbum"
-  ]
+  "lazyCodeLoading": "requiredComponents"
 }
