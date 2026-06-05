@@ -29,7 +29,7 @@ App({
       this.globalData.vipExpire = vip.expire
     }
 
-    // 登录
+    // 登录（离线兼容，后端不可用时不影响启动）
     wx.login({
       success: (res) => {
         if (res.code) {
@@ -37,10 +37,15 @@ App({
             url: this.globalData.apiBase + '/api/login',
             method: 'POST',
             data: { code: res.code },
+            timeout: 5000,
             success: (resp) => {
               if (resp.data && resp.data.openid) {
                 this.globalData.openId = resp.data.openid
               }
+            },
+            fail: () => {
+              // 后端未部署时静默失败，不影响小程序使用
+              console.log('后端暂不可用，使用本地模式')
             }
           })
         }
