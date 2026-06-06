@@ -1,11 +1,12 @@
 // pages/index/index.js
 const app = getApp()
 
-// 🔧 测试模式 - 正式上线前改为 false
-const DEBUG_MODE = true
+// 🔧 测试模式 - 已关闭，走微信云托管后端
+const DEBUG_MODE = false
 
-// ⚠️ 测试用：通义万相 API Key 写在前端（正式上线必须走后端）
-const DASHSCOPE_API_KEY = 'sk-f965b5c203c04c00bd4a9bfbeb05b188'
+// ⚠️ API Key 已移至后端，前端不再需要
+// 通义万相调用统一通过微信云托管后端代理
+const DASHSCOPE_API_KEY = ''
 const DASHSCOPE_GEN_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
 const DASHSCOPE_TASK_URL = 'https://dashscope.aliyuncs.com/api/v1/tasks'
 

@@ -1,7 +1,7 @@
 // app.js - 富贵花开
 App({
-  // 🔧 测试模式开关 - 正式上线前改为 false
-  DEBUG_MODE: true,
+  // 测试模式开关 - 已关闭，走微信云托管后端
+  DEBUG_MODE: false,
 
   globalData: {
     userInfo: null,
