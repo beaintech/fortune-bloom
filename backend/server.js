@@ -79,9 +79,13 @@ async function generateWithHunyuan(imageBase64, styleId) {
   try {
     const params = {
       // InputImage 只传纯 base64，不带 data URI 前缀
+      // 腾讯混元 ImageToImage 参数
+      // 文档: https://cloud.tencent.com/document/product/1668/88066
       InputImage: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
-      Style: config.id,
+      Styles: [config.id],       // ⚠️ 必须是数组，不是字符串！
       Prompt: config.prompt,
+      RspImgType: 'base64',      // 返回 base64
+      Strength: 0.7,             // 生成自由度 0~1，推荐 0.6-0.8
       ResultConfig: {
         Resolution: '2048:2048'
       }
