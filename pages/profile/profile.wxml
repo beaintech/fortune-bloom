@@ -23,13 +23,13 @@
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <text class="stat-num">{{todayRemaining}}</text>
-      <text class="stat-label">今日剩余</text>
+      <text class="stat-num">{{todayGenerated}}</text>
+      <text class="stat-label">今日使用</text>
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <text class="stat-num">{{isVip ? '无限' : '3次'}}</text>
-      <text class="stat-label">每日额度</text>
+      <text class="stat-num">{{isVip ? '无限' : remainingStyles}}</text>
+      <text class="stat-label">免费风格剩余</text>
     </view>
   </view>
 
@@ -45,7 +45,7 @@
       </view>
       <view class="plan-price">
         <text class="price-symbol">¥</text>
-        <text class="price-num">6.9</text>
+        <text class="price-num">1.9</text>
       </view>
       <text class="plan-desc">当日无限次生成</text>
     </view>
@@ -57,10 +57,10 @@
       </view>
       <view class="plan-price">
         <text class="price-symbol">¥</text>
-        <text class="price-num">19.9</text>
+        <text class="price-num">9.9</text>
       </view>
       <text class="plan-desc">30天无限次生成</text>
-      <text class="plan-save">平均每天仅 ¥0.66</text>
+      <text class="plan-save">平均每天仅 ¥0.33</text>
     </view>
 
     <!-- 年卡 -->
@@ -70,10 +70,10 @@
       </view>
       <view class="plan-price">
         <text class="price-symbol">¥</text>
-        <text class="price-num">99</text>
+        <text class="price-num">49</text>
       </view>
       <text class="plan-desc">365天无限次生成</text>
-      <text class="plan-save">平均每天仅 ¥0.27</text>
+      <text class="plan-save">平均每天仅 ¥0.13</text>
     </view>
   </view>
 

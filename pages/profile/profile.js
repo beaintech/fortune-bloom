@@ -7,7 +7,8 @@ Page({
     nickName: '',
     isVip: false,
     totalGenerated: 0,
-    todayRemaining: 3,
+    todayGenerated: 0,
+    remainingStyles: 5,
     vipFeatures: [
       { icon: '🎨', text: '所有风格无限使用' },
       { icon: '⚡', text: '高速生成 · 优先处理' },
@@ -34,16 +35,23 @@ Page({
 
   loadStats() {
     const gallery = wx.getStorageSync('gallery') || []
+    // 计算今日生成数
+    const today = new Date().toLocaleDateString()
+    const todayCount = gallery.filter(item => {
+      return item.time && item.time.startsWith(today)
+    }).length
+    
     this.setData({
       totalGenerated: gallery.length,
-      todayRemaining: app.getRemainingCount()
+      todayGenerated: todayCount,
+      remainingStyles: app.getRemainingCount()
     })
   },
 
   // 购买套餐
   buyPlan(e) {
     const plan = e.currentTarget.dataset.plan
-    const prices = { day: 690, month: 1990, year: 9900 }
+    const prices = { day: 190, month: 990, year: 4900 }
     const names = { day: '日卡', month: '月卡', year: '年卡' }
     
     wx.showModal({

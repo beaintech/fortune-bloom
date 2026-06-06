@@ -149,6 +149,25 @@
   font-size: 48rpx;
 }
 
+.style-tag {
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  font-size: 18rpx;
+  color: #FFF;
+  background: #4CAF50;
+  padding: 2rpx 8rpx;
+  border-radius: 8rpx;
+}
+
+.style-tag.used {
+  background: #999;
+}
+
+.style-preview {
+  position: relative;
+}
+
 .style-name {
   font-size: 26rpx;
   color: var(--text-dark);

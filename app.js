@@ -3,24 +3,17 @@ App({
   globalData: {
     userInfo: null,
     openId: null,
-    freeCount: 3,
     isVip: false,
     vipExpire: null,
+    // 每个风格免费试用1次，共5个风格
+    freeStylesUsed: [],  // 已免费使用过的风格ID
     apiBase: 'https://fortune-bloom-api.example.com'
   },
 
   onLaunch() {
-    // 读取本地存储
-    const today = this.getDateKey()
-    const saved = wx.getStorageSync('dailyUsage') || {}
-    
-    // 重置每日免费次数
-    if (saved.date !== today) {
-      saved.date = today
-      saved.count = 0
-      wx.setStorageSync('dailyUsage', saved)
-    }
-    this.globalData.freeCount = 3 - (saved.count || 0)
+    // 读取已使用的免费风格（存在本地，不清零）
+    const saved = wx.getStorageSync('freeStylesUsed') || []
+    this.globalData.freeStylesUsed = saved
 
     // 读取VIP状态
     const vip = wx.getStorageSync('vipInfo') || {}
@@ -53,24 +46,23 @@ App({
     })
   },
 
-  getDateKey() {
-    const d = new Date()
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
-  },
-
-  useFreeCount() {
+  // 检查某个风格是否可免费使用
+  canUseFree(styleId) {
     if (this.globalData.isVip) return true
-    if (this.globalData.freeCount <= 0) return false
-    
-    this.globalData.freeCount--
-    const saved = wx.getStorageSync('dailyUsage') || { date: this.getDateKey(), count: 0 }
-    saved.count = (saved.count || 0) + 1
-    wx.setStorageSync('dailyUsage', saved)
-    return true
+    return !this.globalData.freeStylesUsed.includes(styleId)
   },
 
+  // 标记某个风格已免费使用
+  markStyleUsed(styleId) {
+    if (this.globalData.isVip) return
+    if (this.globalData.freeStylesUsed.includes(styleId)) return
+    this.globalData.freeStylesUsed.push(styleId)
+    wx.setStorageSync('freeStylesUsed', this.globalData.freeStylesUsed)
+  },
+
+  // 剩余免费风格数
   getRemainingCount() {
     if (this.globalData.isVip) return '无限'
-    return Math.max(0, this.globalData.freeCount)
+    return Math.max(0, 5 - this.globalData.freeStylesUsed.length)
   }
 })

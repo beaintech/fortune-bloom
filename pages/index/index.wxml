@@ -44,17 +44,19 @@
       >
         <view class="style-preview" style="background: {{item.color}}">
           <text class="style-emoji">{{item.emoji}}</text>
+          <view class="style-tag" wx:if="{{item.isFree}}">免费</view>
+          <view class="style-tag used" wx:else>已用</view>
         </view>
         <text class="style-name">{{item.name}}</text>
       </view>
     </view>
   </scroll-view>
 
-  <!-- 剩余次数 -->
+  <!-- 免费次数信息 -->
   <view class="count-info">
-    <text>今日剩余免费次数：</text>
-    <text class="count-num">{{remainingCount}}</text>
-    <text class="count-vip" wx:if="{{isVip}}"> (VIP无限次)</text>
+    <text wx:if="{{isVip}}">💎 VIP · 无限畅享</text>
+    <text wx:elif="{{remainingCount > 0}}">🎁 剩余 {{remainingCount}} 次免费试用</text>
+    <text wx:else>🔓 免费试用已用完 · 看广告或开会员继续</text>
   </view>
 
   <!-- 生成按钮 -->
