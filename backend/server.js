@@ -58,7 +58,8 @@ async function generateWithTongyi(imageBase64, styleId) {
         'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
         'Content-Type': 'application/json',
         'X-DashScope-Async': 'enable'
-      }
+      },
+      timeout: 15000  // 15秒超时
     })
 
     if (response.data && response.data.output) {
@@ -71,19 +72,26 @@ async function generateWithTongyi(imageBase64, styleId) {
     return null
   } catch (error) {
     console.error('Tongyi API error:', error.message)
+    if (error.response) {
+      console.error('  Status:', error.response.status)
+      console.error('  Data:', JSON.stringify(error.response.data))
+    }
     return null
   }
 }
 
-// 轮询异步任务结果
-async function pollTaskResult(taskId, maxRetries = 30) {
+// 轮询异步任务结果（20次 × 2秒 = 最多40秒，避免前端超时）
+async function pollTaskResult(taskId, maxRetries = 20) {
   for (let i = 0; i < maxRetries; i++) {
     await new Promise(resolve => setTimeout(resolve, 2000))
     
     try {
       const response = await axios.get(
         `https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`,
-        { headers: { 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` } }
+        { 
+          headers: { 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` },
+          timeout: 10000  // 10秒超时
+        }
       )
       
       const status = response.data.output.task_status
@@ -124,11 +132,6 @@ app.post('/api/login', async (req, res) => {
   })
 })
 
-// 健康检查（微信云托管探测用）
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: '富贵花开 API' })
-})
-
 // AI 图像生成
 app.post('/api/generate', upload.single('image'), async (req, res) => {
   const { style, openId } = req.body
@@ -137,9 +140,18 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
     return res.json({ success: false, message: '请上传图片' })
   }
   
+  // 提前检查 API Key 是否配置
+  if (!DASHSCOPE_API_KEY) {
+    console.error('❌ DASHSCOPE_API_KEY 未配置！请在微信云托管环境变量中设置')
+    return res.json({ success: false, message: 'AI 服务未配置，请联系开发者' })
+  }
+  
   try {
+    console.log(`📸 收到生成请求: style=${style}, fileSize=${req.file.size} bytes`)
+    
     // 将图片转为 base64
     const imageBase64 = req.file.buffer.toString('base64')
+    console.log(`🔄 调用通义万相 API (wanx-style-repaint-v1)...`)
     
     // 调用通义万相（新版 wanx-style-repaint-v1）
     const resultUrl = await generateWithTongyi(`data:image/jpeg;base64,${imageBase64}`, style)
@@ -151,12 +163,10 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
         style: style
       })
     } else {
-      // 如果API调用失败，返回演示图片
+      // API调用失败，返回错误
       res.json({ 
-        success: true, 
-        resultUrl: '/static/demo-result.jpg',
-        style: style,
-        note: 'demo_mode'
+        success: false, 
+        message: 'AI 生成失败，请检查 API Key 是否正确配置，或稍后重试'
       })
     }
   } catch (error) {
@@ -184,8 +194,6 @@ app.post('/api/pay', async (req, res) => {
 })
 
 // ========== 启动服务器 ==========
-const PORT = process.env.PORT || 3000
-
 app.listen(process.env.PORT || 80, () => {
   const port = process.env.PORT || 80
   console.log(`🌸 富贵花开 API 服务已启动: http://localhost:${port}`)
