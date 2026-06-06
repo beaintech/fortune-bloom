@@ -85,6 +85,43 @@ Page({
   },
 
   processPayment(plan, amount) {
+    // 检测是否是占位符域名（后端未部署）
+    const isPlaceholder = app.globalData.apiBase.includes('example.com')
+    if (isPlaceholder) {
+      wx.showModal({
+        title: '后端未部署',
+        content: '支付功能需要后端服务器。\n当前为 Demo 模式，VIP 功能已本地模拟开启（24小时）。\n\n正式上线前请先部署后端服务。',
+        confirmText: '模拟开通',
+        cancelText: '知道了',
+        confirmColor: '#C41E3A',
+        success: (res) => {
+          if (res.confirm) {
+            // Demo 模式：本地模拟开通 VIP
+            const expire = new Date()
+            const startTime = new Date().toISOString()
+            if (plan === 'day') expire.setDate(expire.getDate() + 1)
+            else if (plan === 'month') expire.setMonth(expire.getMonth() + 1)
+            else if (plan === 'year') expire.setFullYear(expire.getFullYear() + 1)
+
+            wx.setStorageSync('vipInfo', {
+              type: plan,
+              startTime: startTime,
+              expire: expire.toISOString()
+            })
+            app.globalData.isVip = true
+            app.globalData.vipType = plan
+            app.globalData.vipExpire = expire.toISOString()
+
+            this.loadUserInfo()
+            this.loadStats()
+
+            wx.showToast({ title: 'Demo 模式：VIP 已模拟开通', icon: 'none', duration: 2000 })
+          }
+        }
+      })
+      return
+    }
+
     wx.showLoading({ title: '支付中...' })
     
     // 调用后端创建支付订单

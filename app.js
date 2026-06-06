@@ -35,27 +35,32 @@ App({
     this.cleanOldRecords()
 
     // 登录（离线兼容，后端不可用时不影响启动）
-    wx.login({
-      success: (res) => {
-        if (res.code) {
-          wx.request({
-            url: this.globalData.apiBase + '/api/login',
-            method: 'POST',
-            data: { code: res.code },
-            timeout: 5000,
-            success: (resp) => {
-              if (resp.data && resp.data.openid) {
-                this.globalData.openId = resp.data.openid
+    // 如果 apiBase 还是占位符域名，直接跳过，不发起请求
+    const isPlaceholder = this.globalData.apiBase.includes('example.com')
+    if (!isPlaceholder) {
+      wx.login({
+        success: (res) => {
+          if (res.code) {
+            wx.request({
+              url: this.globalData.apiBase + '/api/login',
+              method: 'POST',
+              data: { code: res.code },
+              timeout: 8000,
+              success: (resp) => {
+                if (resp.data && resp.data.openid) {
+                  this.globalData.openId = resp.data.openid
+                }
+              },
+              fail: () => {
+                console.log('后端暂不可用，使用本地模式')
               }
-            },
-            fail: () => {
-              // 后端未部署时静默失败，不影响小程序使用
-              console.log('后端暂不可用，使用本地模式')
-            }
-          })
+            })
+          }
         }
-      }
-    })
+      })
+    } else {
+      console.log('后端未部署（仍是 example.com 占位符），使用纯本地模式')
+    }
   },
 
   // 检查某个风格是否可免费使用

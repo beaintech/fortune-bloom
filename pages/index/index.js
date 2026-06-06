@@ -155,7 +155,54 @@ Page({
     const styleId = this.data.selectedStyle
     this.setData({ generating: true })
 
-    // 上传图片到后端
+    // 检测是否是占位符域名（后端未部署）
+    const isPlaceholder = app.globalData.apiBase.includes('example.com')
+
+    if (isPlaceholder) {
+      // ===== Demo 模式：后端未部署，模拟生成过程 =====
+      wx.showLoading({ title: 'AI 生成中...', mask: true })
+
+      // 模拟3秒生成时间
+      setTimeout(() => {
+        wx.hideLoading()
+
+        // 免费使用才标记（VIP 不标记，广告解锁不标记）
+        if (!app.globalData.isVip && !isAdUnlock) {
+          app.markStyleUsed(styleId)
+        }
+
+        // VIP 用户记录生成次数
+        if (app.globalData.isVip) {
+          app.recordGeneration()
+        }
+
+        // 用原图作为"结果图"（demo 模式下预览图即结果）
+        const resultUrl = this.data.previewImage
+
+        // 保存到本地历史
+        const history = wx.getStorageSync('gallery') || []
+        history.unshift({
+          id: Date.now(),
+          original: this.data.previewImage,
+          result: resultUrl,
+          style: styleId,
+          time: new Date().toLocaleString(),
+          isDemo: true
+        })
+        wx.setStorageSync('gallery', history.slice(0, 50))
+
+        this.setData({ generating: false })
+        this.updateCount()
+
+        // 跳转结果页
+        wx.navigateTo({
+          url: `/pages/result/result?imageUrl=${encodeURIComponent(resultUrl)}&style=${styleId}&demo=1`
+        })
+      }, 3000)
+      return
+    }
+
+    // ===== 真实模式：调用后端 API =====
     wx.uploadFile({
       url: app.globalData.apiBase + '/api/generate',
       filePath: this.data.previewImage,
@@ -194,14 +241,19 @@ Page({
           })
         } else {
           wx.showToast({ title: data.message || '生成失败', icon: 'none' })
+          this.setData({ generating: false })
         }
       },
       fail: () => {
         wx.showToast({ title: '网络错误，请重试', icon: 'none' })
+        this.setData({ generating: false })
       },
       complete: () => {
-        this.setData({ generating: false })
-        this.updateCount()
+        // 只在真实模式下在 complete 里更新（demo 模式在 setTimeout 里更新）
+        if (!isPlaceholder) {
+          this.setData({ generating: false })
+          this.updateCount()
+        }
       }
     })
   }
