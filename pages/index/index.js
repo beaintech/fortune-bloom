@@ -1,6 +1,9 @@
 // pages/index/index.js
 const app = getApp()
 
+// 🔧 测试模式 - 正式上线前改为 false
+const DEBUG_MODE = true
+
 // ⚠️ 测试用：通义万相 API Key 写在前端（正式上线必须走后端）
 const DASHSCOPE_API_KEY = 'sk-f965b5c203c04c00bd4a9bfbeb05b188'
 const DASHSCOPE_GEN_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
@@ -38,6 +41,18 @@ Page({
   },
 
   updateCount() {
+    // 🔧 测试模式
+    if (DEBUG_MODE) {
+      const styles = this.data.styles.map(s => ({ ...s, isFree: true }))
+      this.setData({
+        remainingCount: '🔧测试',
+        isVip: false,
+        vipLimitText: '测试模式 - 不限次数',
+        styles
+      })
+      return
+    }
+
     const isVip = app.globalData.isVip
     let remaining = app.getRemainingCount()
     let vipLimitText = ''
@@ -110,6 +125,12 @@ Page({
       return
     }
 
+    // 🔧 测试模式：跳过所有限制，直接生成
+    if (DEBUG_MODE) {
+      this.doGenerate(false)
+      return
+    }
+
     if (app.globalData.isVip) {
       if (app.isVipLimitReached()) {
         const vip = wx.getStorageSync('vipInfo') || {}
@@ -161,9 +182,9 @@ Page({
     const styleId = this.data.selectedStyle
     this.setData({ generating: true })
 
-    const isPlaceholder = app.globalData.apiBase.includes('example.com')
-
-    if (isPlaceholder) {
+    // 🔧 测试模式 / 后端未部署 → 直连通义万相
+    // Render.com 从国内访问很慢/不可达，测试时统一走直连
+    if (DEBUG_MODE || app.globalData.apiBase.includes('example.com')) {
       this.generateDirectly(styleId, isAdUnlock)
     } else {
       this.generateViaBackend(styleId, isAdUnlock)
@@ -325,11 +346,14 @@ Page({
 
   // 生成完成后的公共处理
   afterGenerate(styleId, isAdUnlock, resultPath) {
-    if (!app.globalData.isVip && !isAdUnlock) {
-      app.markStyleUsed(styleId)
-    }
-    if (app.globalData.isVip) {
-      app.recordGeneration()
+    // 🔧 测试模式：不标记使用，不限次数
+    if (!DEBUG_MODE) {
+      if (!app.globalData.isVip && !isAdUnlock) {
+        app.markStyleUsed(styleId)
+      }
+      if (app.globalData.isVip) {
+        app.recordGeneration()
+      }
     }
 
     const history = wx.getStorageSync('gallery') || []

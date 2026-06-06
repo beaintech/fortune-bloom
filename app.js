@@ -1,5 +1,8 @@
 // app.js - 富贵花开
 App({
+  // 🔧 测试模式开关 - 正式上线前改为 false
+  DEBUG_MODE: true,
+
   globalData: {
     userInfo: null,
     openId: null,
@@ -35,39 +38,46 @@ App({
     this.cleanOldRecords()
 
     // 登录（后台静默执行，不影响启动）
-    wx.login({
-      success: (res) => {
-        if (res.code) {
-          wx.request({
-            url: this.globalData.apiBase + '/api/login',
-            method: 'POST',
-            data: { code: res.code },
-            timeout: 30000,   // Render 免费版冷启动最多需要 30 秒
-            success: (resp) => {
-              if (resp.data && resp.data.openid) {
-                this.globalData.openId = resp.data.openid
+    // 测试模式下跳过，避免 render.com 超时报错
+    if (!this.DEBUG_MODE) {
+      wx.login({
+        success: (res) => {
+          if (res.code) {
+            wx.request({
+              url: this.globalData.apiBase + '/api/login',
+              method: 'POST',
+              data: { code: res.code },
+              timeout: 30000,
+              success: (resp) => {
+                if (resp.data && resp.data.openid) {
+                  this.globalData.openId = resp.data.openid
+                }
+              },
+              fail: (err) => {
+                console.log('登录接口暂时不可用，不影响核心功能:', err.errMsg)
               }
-            },
-            fail: (err) => {
-              console.log('登录接口暂时不可用，不影响核心功能:', err.errMsg)
-            }
-          })
+            })
+          }
+        },
+        fail: (err) => {
+          console.log('wx.login 失败:', err.errMsg)
         }
-      },
-      fail: (err) => {
-        console.log('wx.login 失败:', err.errMsg)
-      }
-    })
+      })
+    } else {
+      console.log('[测试模式] 跳过登录请求')
+    }
   },
 
   // 检查某个风格是否可免费使用
   canUseFree(styleId) {
+    if (this.DEBUG_MODE) return true          // 测试模式：无限制
     if (this.globalData.isVip) return true
     return !this.globalData.freeStylesUsed.includes(styleId)
   },
 
   // 标记某个风格已免费使用
   markStyleUsed(styleId) {
+    if (this.DEBUG_MODE) return               // 测试模式：不标记
     if (this.globalData.isVip) return
     if (this.globalData.freeStylesUsed.includes(styleId)) return
     this.globalData.freeStylesUsed.push(styleId)
@@ -76,6 +86,7 @@ App({
 
   // 剩余免费风格数
   getRemainingCount() {
+    if (this.DEBUG_MODE) return '测试模式'
     if (this.globalData.isVip) return '无限'
     return Math.max(0, 5 - this.globalData.freeStylesUsed.length)
   },
@@ -120,6 +131,7 @@ App({
 
   // 检查VIP是否已达到上限
   isVipLimitReached() {
+    if (this.DEBUG_MODE) return false          // 测试模式：无限制
     if (!this.globalData.isVip) return false
     const vip = wx.getStorageSync('vipInfo') || {}
     if (!vip.type) return false
