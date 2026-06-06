@@ -109,7 +109,11 @@ async function generateWithHunyuan(imageBase64, styleId) {
       console.error('  错误码:', error.code)
       console.error('  错误详情:', error.message)
     }
-    return null
+    // 把腾讯云的错误信息传回前端
+    const errMsg = error.code 
+      ? `混元API错误 [${error.code}]: ${error.message}`
+      : `混元API错误: ${error.message}`
+    throw new Error(errMsg)
   }
 }
 
@@ -181,8 +185,12 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
       })
     }
   } catch (error) {
-    console.error('Generate error:', error)
-    res.json({ success: false, message: '服务异常，请稍后重试' })
+    console.error('Generate error:', error.message)
+    // 把混元 API 的真实错误返回给前端
+    const msg = error.message && error.message.includes('混元') 
+      ? error.message 
+      : 'AI 生成失败，请稍后重试'
+    res.json({ success: false, message: msg })
   }
 })
 
