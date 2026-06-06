@@ -7,7 +7,5 @@ RUN npm install --production
 
 COPY . .
 
-# 暴露端口（微信云托管读取 PORT 环境变量）
-EXPOSE 3000
-
+# 微信云托管自动注入 PORT 环境变量，无需硬编码 EXPOSE
 CMD ["node", "server.js"]

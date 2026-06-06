@@ -124,6 +124,11 @@ app.post('/api/login', async (req, res) => {
   })
 })
 
+// 健康检查（微信云托管探测用）
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: '富贵花开 API' })
+})
+
 // AI 图像生成
 app.post('/api/generate', upload.single('image'), async (req, res) => {
   const { style, openId } = req.body
@@ -181,7 +186,8 @@ app.post('/api/pay', async (req, res) => {
 // ========== 启动服务器 ==========
 const PORT = process.env.PORT || 3000
 
-app.listen(PORT, () => {
-  console.log(`🌸 富贵花开 API 服务已启动: http://localhost:${PORT}`)
-  console.log(`📋 健康检查: http://localhost:${PORT}/api/health`)
+app.listen(process.env.PORT || 80, () => {
+  const port = process.env.PORT || 80
+  console.log(`🌸 富贵花开 API 服务已启动: http://localhost:${port}`)
+  console.log(`📋 健康检查: http://localhost:${port}/api/health`)
 })
