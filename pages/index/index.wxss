@@ -52,7 +52,7 @@
 
 .upload-area {
   width: 100%;
-  height: 380rpx;
+  min-height: 600rpx;   /* 提高最小高度，竖图能完整显示 */
   background: #FFFFFF;
   border-radius: 20rpx;
   border: 4rpx dashed var(--gold);
@@ -83,7 +83,7 @@
 
 .preview-img {
   width: 100%;
-  height: 100%;
+  /* mode="widthFix" 时高度自动按比例计算，不设 height */
 }
 
 .rechoose-btn {

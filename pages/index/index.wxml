@@ -20,7 +20,8 @@
         <text class="upload-text">点击拍照或选择照片</text>
         <text class="upload-hint">支持头像、自拍、合影</text>
       </block>
-      <image wx:else src="{{previewImage}}" mode="aspectFill" class="preview-img" />
+      <!-- mode="widthFix": 宽度撑满，高度按图片比例自适应，不裁剪 -->
+      <image wx:else src="{{previewImage}}" mode="widthFix" class="preview-img" />
     </view>
     <view wx:if="{{previewImage}}" class="rechoose-btn" bindtap="chooseImage">
       <text>重新选择</text>

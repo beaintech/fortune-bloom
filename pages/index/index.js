@@ -1,13 +1,27 @@
 // pages/index/index.js
 const app = getApp()
 
+// ⚠️ 测试用：通义万相 API Key 写在前端（正式上线必须走后端）
+const DASHSCOPE_API_KEY = 'sk-f965b5c203c04c00bd4a9bfbeb05b188'
+const DASHSCOPE_GEN_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
+const DASHSCOPE_TASK_URL = 'https://dashscope.aliyuncs.com/api/v1/tasks'
+
+// 风格提示词
+const STYLE_PROMPTS = {
+  peony: '将这张照片转化为华丽的中国传统花卉风格。背景是盛开的牡丹花丛，搭配大红色和金色的华丽边框。整体色调以中国红和金色为主，添加富贵华丽的装饰元素。画面明亮、喜庆、富贵。人脸保持自然清晰，服装和背景整体美化。',
+  golden: '将这张照片转化为金碧辉煌的风格。金色祥云背景，金色边框装饰。整体呈温暖的金色调，如同置身金色宫殿。加入金色光芒、钱币、元宝等象征财富的元素。画面富丽堂皇但不过分夸张。',
+  ink: '将这张照片转化为优雅的中国水墨画风格。背景为淡淡的水墨渲染，留白有致。颜色以黑白灰为主，点缀少量朱红。人物轮廓用水墨笔触勾勒，气质优雅文艺。画面宁静致远，有文人气息。',
+  cloud: '将这张照片转化为仙气飘飘的祥云风格。背景是蓝天白云和缭绕的仙气，画面清新淡雅。加入祥云、仙鹤、远山等元素。整体色调柔和明亮，给人一种祥和、好运的感觉。',
+  classic: '将这张照片转化为喜庆的中国传统年画风格。大红底色，金色纹样边框。人物面容红润喜庆，服装华丽。加入牡丹、福字、如意等传统吉祥元素。画面饱满、热闹、喜庆，有浓郁的中国年味。'
+}
+
 Page({
   data: {
     previewImage: '',
     selectedStyle: 'peony',
     remainingCount: 0,
     isVip: false,
-    vipLimitText: '',   // VIP剩余额度文字
+    vipLimitText: '',
     generating: false,
     styles: [
       { id: 'peony', name: '牡丹富贵', emoji: '🌸', color: '#FFE4E1' },
@@ -51,7 +65,6 @@ Page({
     })
   },
 
-  // 选择图片
   chooseImage() {
     wx.chooseImage({
       count: 1,
@@ -63,29 +76,26 @@ Page({
     })
   },
 
-  // 选择风格
   selectStyle(e) {
     this.setData({ selectedStyle: e.currentTarget.dataset.id })
   },
 
-  // 看广告解锁
   watchAd() {
-    const adUnitId = 'adunit-xxxxxxxx' // TODO: 替换为你的激励视频广告单元ID
+    const adUnitId = 'adunit-xxxxxxxx'
     const rewardedVideoAd = wx.createRewardedVideoAd({ adUnitId })
-    
+
     rewardedVideoAd.onError(() => {
       wx.showToast({ title: '广告加载失败，请重试', icon: 'none' })
     })
-    
+
     rewardedVideoAd.onClose((res) => {
       if (res && res.isEnded) {
-        // 广告看完，允许生成一张
         this.doGenerate(true)
       } else {
         wx.showToast({ title: '需要看完广告才能解锁哦', icon: 'none' })
       }
     })
-    
+
     rewardedVideoAd.show().catch(() => {
       rewardedVideoAd.load()
         .then(() => rewardedVideoAd.show())
@@ -93,7 +103,6 @@ Page({
     })
   },
 
-  // 开始生成
   startGenerate() {
     if (this.data.generating) return
     if (!this.data.previewImage) {
@@ -101,7 +110,6 @@ Page({
       return
     }
 
-    // VIP 用户：检查上限
     if (app.globalData.isVip) {
       if (app.isVipLimitReached()) {
         const vip = wx.getStorageSync('vipInfo') || {}
@@ -126,14 +134,12 @@ Page({
     }
 
     const styleId = this.data.selectedStyle
-    
-    // 该风格还有免费次数
+
     if (app.canUseFree(styleId)) {
       this.doGenerate(false)
       return
     }
 
-    // 免费次数用完 → 弹窗：看广告或开会员
     wx.showModal({
       title: '免费试用已用完',
       content: '🌸 看一段广告即可解锁 1 次生成\n💎 开会员高额度畅享，免广告',
@@ -150,59 +156,202 @@ Page({
     })
   },
 
-  // 执行生成
+  // ========== 主生成入口 ==========
   doGenerate(isAdUnlock) {
     const styleId = this.data.selectedStyle
     this.setData({ generating: true })
 
-    // 检测是否是占位符域名（后端未部署）
     const isPlaceholder = app.globalData.apiBase.includes('example.com')
 
     if (isPlaceholder) {
-      // ===== Demo 模式：后端未部署，模拟生成过程 =====
-      wx.showLoading({ title: 'AI 生成中...', mask: true })
+      this.generateDirectly(styleId, isAdUnlock)
+    } else {
+      this.generateViaBackend(styleId, isAdUnlock)
+    }
+  },
 
-      // 模拟3秒生成时间
-      setTimeout(() => {
+  // ========== 直连通义万相 API（测试用）==========
+  generateDirectly(styleId, isAdUnlock) {
+    const stylePrompt = STYLE_PROMPTS[styleId] || STYLE_PROMPTS.peony
+    const fs = wx.getFileSystemManager()
+
+    wx.showLoading({ title: 'AI 生成中...', mask: true })
+
+    fs.readFile({
+      filePath: this.data.previewImage,
+      encoding: 'base64',
+      success: (readRes) => {
+        const base64 = 'data:image/jpeg;base64,' + readRes.data
+
+        wx.request({
+          url: DASHSCOPE_GEN_URL,
+          method: 'POST',
+          timeout: 120000,
+          header: {
+            'Authorization': 'Bearer ' + DASHSCOPE_API_KEY,
+            'Content-Type': 'application/json',
+            'X-DashScope-Async': 'enable'
+          },
+          data: {
+            model: 'wanx-style-cosplay-v1',
+            input: {
+              base_image: base64,
+              ref_image: base64,
+              style_index: 0
+            },
+            parameters: {
+              prompt: stylePrompt,
+              negative_prompt: '模糊, 扭曲, 变形, 丑陋, 恐怖, 暗黑, 悲伤',
+              size: '1024*1024'
+            }
+          },
+          success: (apiRes) => {
+            console.log('[通义万相] 状态码:', apiRes.statusCode)
+            console.log('[通义万相] 响应:', JSON.stringify(apiRes.data).substring(0, 300))
+
+            if (apiRes.statusCode === 200 && apiRes.data && apiRes.data.output && apiRes.data.output.task_id) {
+              const taskId = apiRes.data.output.task_id
+              this.pollTask(taskId, styleId, isAdUnlock)
+            } else {
+              wx.hideLoading()
+              const errMsg = (apiRes.data && (apiRes.data.message || apiRes.data.errmsg)) || ('HTTP ' + (apiRes.statusCode || '无响应'))
+              wx.showModal({
+                title: 'API 调用失败',
+                content: errMsg + '\n\n请检查：\n1. API Key 是否正确\n2. 开发者工具是否勾选"不校验合法域名"',
+                showCancel: false
+              })
+              this.setData({ generating: false })
+              console.error('[通义万相] 提交失败:', apiRes.data)
+            }
+          },
+          fail: (err) => {
+            wx.hideLoading()
+            wx.showModal({
+              title: '网络请求失败',
+              content: '无法连接通义万相 API。\n\n错误: ' + (err.errMsg || JSON.stringify(err)) + '\n\n如果在微信开发者工具中测试，请确保已勾选"不校验合法域名"。',
+              showCancel: false
+            })
+            this.setData({ generating: false })
+            console.error('[通义万相] 请求失败:', err)
+          }
+        })
+      },
+      fail: () => {
         wx.hideLoading()
-
-        // 免费使用才标记（VIP 不标记，广告解锁不标记）
-        if (!app.globalData.isVip && !isAdUnlock) {
-          app.markStyleUsed(styleId)
-        }
-
-        // VIP 用户记录生成次数
-        if (app.globalData.isVip) {
-          app.recordGeneration()
-        }
-
-        // 用原图作为"结果图"（demo 模式下预览图即结果）
-        const resultUrl = this.data.previewImage
-
-        // 保存到本地历史
-        const history = wx.getStorageSync('gallery') || []
-        history.unshift({
-          id: Date.now(),
-          original: this.data.previewImage,
-          result: resultUrl,
-          style: styleId,
-          time: new Date().toLocaleString(),
-          isDemo: true
-        })
-        wx.setStorageSync('gallery', history.slice(0, 50))
-
+        wx.showToast({ title: '读取图片失败', icon: 'none' })
         this.setData({ generating: false })
-        this.updateCount()
+      }
+    })
+  },
 
-        // 跳转结果页
-        wx.navigateTo({
-          url: `/pages/result/result?imageUrl=${encodeURIComponent(resultUrl)}&style=${styleId}&demo=1`
-        })
-      }, 3000)
+  // 轮询异步任务结果
+  pollTask(taskId, styleId, isAdUnlock, retries) {
+    retries = retries || 40
+
+    if (retries <= 0) {
+      wx.hideLoading()
+      wx.showToast({ title: '生成超时，请重试', icon: 'none' })
+      this.setData({ generating: false })
       return
     }
 
-    // ===== 真实模式：调用后端 API =====
+    wx.request({
+      url: DASHSCOPE_TASK_URL + '/' + taskId,
+      method: 'GET',
+      timeout: 30000,
+      header: {
+        'Authorization': 'Bearer ' + DASHSCOPE_API_KEY
+      },
+      success: (res) => {
+        const output = res.data && res.data.output
+        if (!output) {
+          console.log('[通义万相] 轮询响应异常:', res.data)
+          setTimeout(() => {
+            this.pollTask(taskId, styleId, isAdUnlock, retries - 1)
+          }, 2000)
+          return
+        }
+
+        const status = output.task_status
+        if (status === 'SUCCEEDED') {
+          const resultUrl = output.results && output.results[0] && output.results[0].url
+          if (resultUrl) {
+            this.onAiSuccess(resultUrl, styleId, isAdUnlock)
+          } else {
+            wx.hideLoading()
+            wx.showToast({ title: '生成结果异常', icon: 'none' })
+            this.setData({ generating: false })
+          }
+        } else if (status === 'FAILED') {
+          wx.hideLoading()
+          const errMsg = (output.err_msg) ? output.err_msg : '未知错误'
+          wx.showModal({
+            title: 'AI 生成失败',
+            content: '错误: ' + errMsg,
+            showCancel: false
+          })
+          this.setData({ generating: false })
+          console.error('[通义万相] 任务失败:', res.data)
+        } else {
+          setTimeout(() => {
+            this.pollTask(taskId, styleId, isAdUnlock, retries - 1)
+          }, 2000)
+        }
+      },
+      fail: (err) => {
+        console.log('[通义万相] 轮询请求失败:', err)
+        setTimeout(() => {
+          this.pollTask(taskId, styleId, isAdUnlock, retries - 1)
+        }, 2000)
+      }
+    })
+  },
+
+  // AI 生成成功 → 下载结果图
+  onAiSuccess(resultUrl, styleId, isAdUnlock) {
+    wx.downloadFile({
+      url: resultUrl,
+      success: (dlRes) => {
+        wx.hideLoading()
+        this.afterGenerate(styleId, isAdUnlock, dlRes.tempFilePath)
+      },
+      fail: () => {
+        wx.hideLoading()
+        wx.showToast({ title: '下载结果失败', icon: 'none' })
+        this.setData({ generating: false })
+      }
+    })
+  },
+
+  // 生成完成后的公共处理
+  afterGenerate(styleId, isAdUnlock, resultPath) {
+    if (!app.globalData.isVip && !isAdUnlock) {
+      app.markStyleUsed(styleId)
+    }
+    if (app.globalData.isVip) {
+      app.recordGeneration()
+    }
+
+    const history = wx.getStorageSync('gallery') || []
+    history.unshift({
+      id: Date.now(),
+      original: this.data.previewImage,
+      result: resultPath,
+      style: styleId,
+      time: new Date().toLocaleString()
+    })
+    wx.setStorageSync('gallery', history.slice(0, 50))
+
+    this.setData({ generating: false })
+    this.updateCount()
+
+    wx.navigateTo({
+      url: '/pages/result/result?imageUrl=' + encodeURIComponent(resultPath) + '&style=' + styleId
+    })
+  },
+
+  // ========== 通过后端代理调用（正式上线用）==========
+  generateViaBackend(styleId, isAdUnlock) {
     wx.uploadFile({
       url: app.globalData.apiBase + '/api/generate',
       filePath: this.data.previewImage,
@@ -214,31 +363,7 @@ Page({
       success: (res) => {
         const data = JSON.parse(res.data)
         if (data.success) {
-          // 免费使用才标记（VIP 不标记，广告解锁不标记）
-          if (!app.globalData.isVip && !isAdUnlock) {
-            app.markStyleUsed(styleId)
-          }
-          
-          // VIP 用户记录生成次数
-          if (app.globalData.isVip) {
-            app.recordGeneration()
-          }
-          
-          // 保存到本地
-          const history = wx.getStorageSync('gallery') || []
-          history.unshift({
-            id: Date.now(),
-            original: this.data.previewImage,
-            result: data.resultUrl,
-            style: styleId,
-            time: new Date().toLocaleString()
-          })
-          wx.setStorageSync('gallery', history.slice(0, 50))
-          
-          // 跳转结果页
-          wx.navigateTo({
-            url: `/pages/result/result?imageUrl=${encodeURIComponent(data.resultUrl)}&style=${styleId}`
-          })
+          this.afterGenerate(styleId, isAdUnlock, data.resultUrl)
         } else {
           wx.showToast({ title: data.message || '生成失败', icon: 'none' })
           this.setData({ generating: false })
@@ -247,13 +372,6 @@ Page({
       fail: () => {
         wx.showToast({ title: '网络错误，请重试', icon: 'none' })
         this.setData({ generating: false })
-      },
-      complete: () => {
-        // 只在真实模式下在 complete 里更新（demo 模式在 setTimeout 里更新）
-        if (!isPlaceholder) {
-          this.setData({ generating: false })
-          this.updateCount()
-        }
       }
     })
   }
