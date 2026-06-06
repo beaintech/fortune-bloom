@@ -100,7 +100,14 @@
   font-weight: bold;
   color: var(--text-dark);
   text-align: center;
-  padding: 30rpx 20rpx 20rpx;
+  padding: 30rpx 20rpx 10rpx;
+}
+
+.plan-note {
+  text-align: center;
+  font-size: 22rpx;
+  color: var(--text-light);
+  padding: 0 30rpx 20rpx;
 }
 
 /* 套餐卡片 */
@@ -116,22 +123,26 @@
   border-radius: 20rpx;
   padding: 30rpx;
   border: 3rpx solid #EEEEEE;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.04);
 }
 
 .plan-card.recommend {
   border-color: var(--red);
   background: #FFF5F5;
+}
+
+.plan-card.hot {
+  border-color: #FFD700;
+  background: #FFFDF0;
   position: relative;
+  overflow: hidden;
 }
 
 .plan-header {
   display: flex;
   align-items: center;
   gap: 12rpx;
+  margin-bottom: 16rpx;
 }
 
 .plan-name {
@@ -148,6 +159,18 @@
   border-radius: 8rpx;
 }
 
+.hot-badge {
+  background: #FFD700;
+  color: #8B0000;
+  font-weight: bold;
+}
+
+.plan-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
 .plan-price {
   display: flex;
   align-items: baseline;
@@ -160,24 +183,28 @@
 }
 
 .price-num {
-  font-size: 52rpx;
+  font-size: 64rpx;
   color: var(--red);
   font-weight: bold;
   line-height: 1;
 }
 
+.plan-info {
+  text-align: right;
+}
+
 .plan-desc {
-  font-size: 24rpx;
-  color: var(--text-light);
+  font-size: 26rpx;
+  color: var(--text-mid);
   display: block;
-  margin-top: 6rpx;
 }
 
 .plan-save {
   font-size: 22rpx;
   color: var(--gold);
   display: block;
-  margin-top: 4rpx;
+  margin-top: 6rpx;
+  font-weight: bold;
 }
 
 /* 功能介绍 */
@@ -226,4 +253,19 @@
 .footer-link {
   margin-left: 20rpx;
   color: var(--red);
+}
+
+/* VIP 使用详情 */
+.vip-usage {
+  margin: 0 30rpx 20rpx;
+  background: #FFF5F5;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  border: 2rpx solid #FFD5D5;
+}
+
+.vip-usage-text {
+  font-size: 26rpx;
+  color: var(--red);
+  font-weight: 500;
 }

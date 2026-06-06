@@ -28,13 +28,19 @@
     </view>
     <view class="stat-divider"></view>
     <view class="stat-item">
-      <text class="stat-num">{{isVip ? '无限' : remainingStyles}}</text>
-      <text class="stat-label">免费风格剩余</text>
+      <text class="stat-num">{{isVip ? 'VIP' : remainingStyles}}</text>
+      <text class="stat-label">{{isVip ? '会员专属' : '免费风格剩余'}}</text>
     </view>
   </view>
 
+  <!-- VIP 使用详情 -->
+  <view class="vip-usage" wx:if="{{isVip && vipUsageText}}">
+    <text class="vip-usage-text">{{vipUsageText}}</text>
+  </view>
+
   <!-- 会员套餐 -->
-  <view class="section-title">💎 升级VIP · 畅享无限</view>
+  <view class="section-title">💎 开通会员 · 畅享生成</view>
+  <view class="plan-note">* 为防止滥用，会员设有月度生成上限</view>
   
   <view class="plans">
     <!-- 日卡 -->
@@ -43,24 +49,34 @@
         <text class="plan-name">日卡</text>
         <text class="plan-badge" wx:if="{{!isVip}}">推荐</text>
       </view>
-      <view class="plan-price">
-        <text class="price-symbol">¥</text>
-        <text class="price-num">1.9</text>
+      <view class="plan-body">
+        <view class="plan-price">
+          <text class="price-symbol">¥</text>
+          <text class="price-num">2.9</text>
+        </view>
+        <view class="plan-info">
+          <text class="plan-desc">24小时内最多 10 张</text>
+          <text class="plan-save">适合尝鲜体验</text>
+        </view>
       </view>
-      <text class="plan-desc">当日无限次生成</text>
     </view>
 
     <!-- 月卡 -->
-    <view class="plan-card" bindtap="buyPlan" data-plan="month">
+    <view class="plan-card hot" bindtap="buyPlan" data-plan="month">
       <view class="plan-header">
         <text class="plan-name">月卡</text>
+        <text class="plan-badge hot-badge">🔥 最划算</text>
       </view>
-      <view class="plan-price">
-        <text class="price-symbol">¥</text>
-        <text class="price-num">9.9</text>
+      <view class="plan-body">
+        <view class="plan-price">
+          <text class="price-symbol">¥</text>
+          <text class="price-num">12.9</text>
+        </view>
+        <view class="plan-info">
+          <text class="plan-desc">30天内最多 50 张</text>
+          <text class="plan-save">平均每天 ¥0.43</text>
+        </view>
       </view>
-      <text class="plan-desc">30天无限次生成</text>
-      <text class="plan-save">平均每天仅 ¥0.33</text>
     </view>
 
     <!-- 年卡 -->
@@ -68,12 +84,16 @@
       <view class="plan-header">
         <text class="plan-name">年卡</text>
       </view>
-      <view class="plan-price">
-        <text class="price-symbol">¥</text>
-        <text class="price-num">79</text>
+      <view class="plan-body">
+        <view class="plan-price">
+          <text class="price-symbol">¥</text>
+          <text class="price-num">79</text>
+        </view>
+        <view class="plan-info">
+          <text class="plan-desc">365天内最多 300 张</text>
+          <text class="plan-save">平均每天 ¥0.22，省最多</text>
+        </view>
       </view>
-      <text class="plan-desc">365天无限次生成</text>
-      <text class="plan-save">平均每天仅 ¥0.22</text>
     </view>
   </view>
 

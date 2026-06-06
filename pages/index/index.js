@@ -7,6 +7,7 @@ Page({
     selectedStyle: 'peony',
     remainingCount: 0,
     isVip: false,
+    vipLimitText: '',   // VIP剩余额度文字
     generating: false,
     styles: [
       { id: 'peony', name: '牡丹富贵', emoji: '🌸', color: '#FFE4E1' },
@@ -23,14 +24,29 @@ Page({
   },
 
   updateCount() {
-    const remaining = app.getRemainingCount()
+    const isVip = app.globalData.isVip
+    let remaining = app.getRemainingCount()
+    let vipLimitText = ''
+
+    if (isVip) {
+      const vip = wx.getStorageSync('vipInfo') || {}
+      const type = vip.type || 'day'
+      const limits = { day: 10, month: 50, year: 300 }
+      const limit = limits[type] || 10
+      const used = app.getVipUsedCount()
+      const left = Math.max(0, limit - used)
+      vipLimitText = `今日剩余 ${left}/${limit} 张`
+      remaining = left
+    }
+
     const styles = this.data.styles.map(s => ({
       ...s,
       isFree: app.canUseFree(s.id)
     }))
     this.setData({
       remainingCount: remaining,
-      isVip: app.globalData.isVip,
+      isVip: isVip,
+      vipLimitText,
       styles
     })
   },
@@ -85,8 +101,26 @@ Page({
       return
     }
 
-    // VIP 直接生成
+    // VIP 用户：检查上限
     if (app.globalData.isVip) {
+      if (app.isVipLimitReached()) {
+        const vip = wx.getStorageSync('vipInfo') || {}
+        const typeNames = { day: '日卡', month: '月卡', year: '年卡' }
+        const typeName = typeNames[vip.type] || '会员'
+        wx.showModal({
+          title: `${typeName}额度已用完`,
+          content: '本次会员周期内生成次数已达上限。\n可续费升级，或等下一周期重置。',
+          confirmText: '立即续费',
+          cancelText: '知道了',
+          confirmColor: '#C41E3A',
+          success: (res) => {
+            if (res.confirm) {
+              wx.navigateTo({ url: '/pages/profile/profile' })
+            }
+          }
+        })
+        return
+      }
       this.doGenerate(false)
       return
     }
@@ -102,8 +136,8 @@ Page({
     // 免费次数用完 → 弹窗：看广告或开会员
     wx.showModal({
       title: '免费试用已用完',
-      content: '🌸 看一段广告即可解锁 1 次生成\n💎 开会员无限畅享，免广告',
-      confirmText: '¥1.9 开会员',
+      content: '🌸 看一段广告即可解锁 1 次生成\n💎 开会员高额度畅享，免广告',
+      confirmText: '¥2.9 开会员',
       cancelText: '看广告解锁',
       confirmColor: '#C41E3A',
       success: (res) => {
@@ -136,6 +170,11 @@ Page({
           // 免费使用才标记（VIP 不标记，广告解锁不标记）
           if (!app.globalData.isVip && !isAdUnlock) {
             app.markStyleUsed(styleId)
+          }
+          
+          // VIP 用户记录生成次数
+          if (app.globalData.isVip) {
+            app.recordGeneration()
           }
           
           // 保存到本地

@@ -54,7 +54,7 @@
 
   <!-- 免费次数信息 -->
   <view class="count-info">
-    <text wx:if="{{isVip}}">💎 VIP · 无限畅享</text>
+    <text wx:if="{{isVip}}">💎 {{vipLimitText}}</text>
     <text wx:elif="{{remainingCount > 0}}">🎁 剩余 {{remainingCount}} 次免费试用</text>
     <text wx:else>🔓 免费试用已用完 · 看广告或开会员继续</text>
   </view>
