@@ -70,10 +70,10 @@
       </view>
       <view class="plan-price">
         <text class="price-symbol">¥</text>
-        <text class="price-num">49</text>
+        <text class="price-num">79</text>
       </view>
       <text class="plan-desc">365天无限次生成</text>
-      <text class="plan-save">平均每天仅 ¥0.13</text>
+      <text class="plan-save">平均每天仅 ¥0.22</text>
     </view>
   </view>
 
