@@ -34,33 +34,30 @@ App({
     // 清理过期的生成记录（节省存储空间）
     this.cleanOldRecords()
 
-    // 登录（离线兼容，后端不可用时不影响启动）
-    // 如果 apiBase 还是占位符域名，直接跳过，不发起请求
-    const isPlaceholder = this.globalData.apiBase.includes('example.com')
-    if (!isPlaceholder) {
-      wx.login({
-        success: (res) => {
-          if (res.code) {
-            wx.request({
-              url: this.globalData.apiBase + '/api/login',
-              method: 'POST',
-              data: { code: res.code },
-              timeout: 8000,
-              success: (resp) => {
-                if (resp.data && resp.data.openid) {
-                  this.globalData.openId = resp.data.openid
-                }
-              },
-              fail: () => {
-                console.log('后端暂不可用，使用本地模式')
+    // 登录（后台静默执行，不影响启动）
+    wx.login({
+      success: (res) => {
+        if (res.code) {
+          wx.request({
+            url: this.globalData.apiBase + '/api/login',
+            method: 'POST',
+            data: { code: res.code },
+            timeout: 30000,   // Render 免费版冷启动最多需要 30 秒
+            success: (resp) => {
+              if (resp.data && resp.data.openid) {
+                this.globalData.openId = resp.data.openid
               }
-            })
-          }
+            },
+            fail: (err) => {
+              console.log('登录接口暂时不可用，不影响核心功能:', err.errMsg)
+            }
+          })
         }
-      })
-    } else {
-      console.log('后端未部署（仍是 example.com 占位符），使用纯本地模式')
-    }
+      },
+      fail: (err) => {
+        console.log('wx.login 失败:', err.errMsg)
+      }
+    })
   },
 
   // 检查某个风格是否可免费使用
