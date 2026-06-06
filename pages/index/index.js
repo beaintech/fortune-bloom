@@ -9,13 +9,19 @@ const DASHSCOPE_API_KEY = 'sk-f965b5c203c04c00bd4a9bfbeb05b188'
 const DASHSCOPE_GEN_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
 const DASHSCOPE_TASK_URL = 'https://dashscope.aliyuncs.com/api/v1/tasks'
 
-// 风格提示词
-const STYLE_PROMPTS = {
-  peony: '将这张照片转化为华丽的中国传统花卉风格。背景是盛开的牡丹花丛，搭配大红色和金色的华丽边框。整体色调以中国红和金色为主，添加富贵华丽的装饰元素。画面明亮、喜庆、富贵。人脸保持自然清晰，服装和背景整体美化。',
-  golden: '将这张照片转化为金碧辉煌的风格。金色祥云背景，金色边框装饰。整体呈温暖的金色调，如同置身金色宫殿。加入金色光芒、钱币、元宝等象征财富的元素。画面富丽堂皇但不过分夸张。',
-  ink: '将这张照片转化为优雅的中国水墨画风格。背景为淡淡的水墨渲染，留白有致。颜色以黑白灰为主，点缀少量朱红。人物轮廓用水墨笔触勾勒，气质优雅文艺。画面宁静致远，有文人气息。',
-  cloud: '将这张照片转化为仙气飘飘的祥云风格。背景是蓝天白云和缭绕的仙气，画面清新淡雅。加入祥云、仙鹤、远山等元素。整体色调柔和明亮，给人一种祥和、好运的感觉。',
-  classic: '将这张照片转化为喜庆的中国传统年画风格。大红底色，金色纹样边框。人物面容红润喜庆，服装华丽。加入牡丹、福字、如意等传统吉祥元素。画面饱满、热闹、喜庆，有浓郁的中国年味。'
+// 风格 → 预置 style_index 映射
+const STYLE_INDEX_MAP = {
+  peony: 14,     // 国风工笔 → 对应牡丹富贵
+  golden: 8,     // 清雅国风 → 对应金玉满堂
+  ink: 5,        // 国画古风 → 对应水墨丹青
+  cloud: 3,      // 小清新   → 对应祥云仙气
+  classic: 9     // 喜迎新年 → 对应古典年画
+}
+
+// 风格中文名
+const STYLE_NAMES = {
+  peony: '牡丹富贵', golden: '金玉满堂', ink: '水墨丹青',
+  cloud: '祥云仙气', classic: '古典年画'
 }
 
 Page({
@@ -193,17 +199,20 @@ Page({
 
   // ========== 直连通义万相 API（测试用）==========
   generateDirectly(styleId, isAdUnlock) {
-    const stylePrompt = STYLE_PROMPTS[styleId] || STYLE_PROMPTS.peony
+    const styleIndex = STYLE_INDEX_MAP[styleId] || 14
+    const styleName = STYLE_NAMES[styleId] || '牡丹富贵'
     const fs = wx.getFileSystemManager()
 
-    wx.showLoading({ title: 'AI 生成中...', mask: true })
+    wx.showLoading({ title: `AI ${styleName}风格...`, mask: true })
 
     fs.readFile({
       filePath: this.data.previewImage,
       encoding: 'base64',
       success: (readRes) => {
-        const base64 = 'data:image/jpeg;base64,' + readRes.data
+        const imageBase64 = 'data:image/jpeg;base64,' + readRes.data
 
+        // === 调用 wanx-style-repaint-v1（人像风格重绘）===
+        // 免费额度: 500张/90天 | 超量: ¥0.12/张
         wx.request({
           url: DASHSCOPE_GEN_URL,
           method: 'POST',
@@ -214,16 +223,10 @@ Page({
             'X-DashScope-Async': 'enable'
           },
           data: {
-            model: 'wanx-style-cosplay-v1',
+            model: 'wanx-style-repaint-v1',
             input: {
-              base_image: base64,
-              ref_image: base64,
-              style_index: 0
-            },
-            parameters: {
-              prompt: stylePrompt,
-              negative_prompt: '模糊, 扭曲, 变形, 丑陋, 恐怖, 暗黑, 悲伤',
-              size: '1024*1024'
+              image_url: imageBase64,   // 支持 base64 格式
+              style_index: styleIndex   // 预置风格索引
             }
           },
           success: (apiRes) => {

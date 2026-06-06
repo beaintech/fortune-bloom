@@ -34,33 +34,24 @@ if (!fs.existsSync(path.join(__dirname, 'static'))) {
 const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY
 const DASHSCOPE_API = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
 
-// 风格映射
-const STYLE_PROMPTS = {
-  peony: `将这张照片转化为华丽的中国传统花卉风格。背景是盛开的牡丹花丛，搭配大红色和金色的华丽边框。整体色调以中国红(#C41E3A)和金色(#D4A017)为主，添加富贵华丽的装饰元素。画面明亮、喜庆、富贵。人脸保持自然清晰，服装和背景整体美化。`,
-  
-  golden: `将这张照片转化为金碧辉煌的风格。金色祥云背景，金色边框装饰。整体呈温暖的金色调，如同置身金色宫殿。加入金色光芒、钱币、元宝等象征财富的元素。画面富丽堂皇但不过分夸张。`,
-  
-  ink: `将这张照片转化为优雅的中国水墨画风格。背景为淡淡的水墨渲染，留白有致。颜色以黑白灰为主，点缀少量朱红。人物轮廓用水墨笔触勾勒，气质优雅文艺。画面宁静致远，有文人气息。`,
-  
-  cloud: `将这张照片转化为仙气飘飘的祥云风格。背景是蓝天白云和缭绕的仙气，画面清新淡雅。加入祥云、仙鹤、远山等元素。整体色调柔和明亮，给人一种祥和、好运的感觉。`,
-  
-  classic: `将这张照片转化为喜庆的中国传统年画风格。大红底色，金色纹样边框。人物面容红润喜庆，服装华丽。加入牡丹、福字、如意等传统吉祥元素。画面饱满、热闹、喜庆，有浓郁的中国年味。`
+// 风格映射 (style_index)
+const STYLE_INDEX_MAP = {
+  peony: 14,     // 国风工笔 → 牡丹富贵
+  golden: 8,     // 清雅国风 → 金玉满堂
+  ink: 5,        // 国画古风 → 水墨丹青
+  cloud: 3,      // 小清新   → 祥云仙气
+  classic: 9     // 喜迎新年 → 古典年画
 }
 
 // ========== 通义万相 图像生成 ==========
-async function generateWithTongyi(imageBase64, stylePrompt) {
+async function generateWithTongyi(imageBase64, styleId) {
+  const styleIndex = STYLE_INDEX_MAP[styleId] || 14
   try {
     const response = await axios.post(DASHSCOPE_API, {
-      model: 'wanx-style-cosplay-v1',
+      model: 'wanx-style-repaint-v1',
       input: {
-        base_image: imageBase64,
-        ref_image: imageBase64,
-        style_index: 0
-      },
-      parameters: {
-        prompt: stylePrompt,
-        negative_prompt: '模糊, 扭曲, 变形, 丑陋, 恐怖, 暗黑, 悲伤',
-        size: '1024*1024'
+        image_url: imageBase64,
+        style_index: styleIndex
       }
     }, {
       headers: {
@@ -141,14 +132,12 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
     return res.json({ success: false, message: '请上传图片' })
   }
   
-  const stylePrompt = STYLE_PROMPTS[style] || STYLE_PROMPTS.peony
-  
   try {
     // 将图片转为 base64
     const imageBase64 = req.file.buffer.toString('base64')
     
-    // 调用通义万相
-    const resultUrl = await generateWithTongyi(`data:image/jpeg;base64,${imageBase64}`, stylePrompt)
+    // 调用通义万相（新版 wanx-style-repaint-v1）
+    const resultUrl = await generateWithTongyi(`data:image/jpeg;base64,${imageBase64}`, style)
     
     if (resultUrl) {
       res.json({ 
