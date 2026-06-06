@@ -8,7 +8,7 @@ App({
     vipExpire: null,
     // 每个风格免费试用1次，共5个风格
     freeStylesUsed: [],  // 已免费使用过的风格ID
-    apiBase: 'https://fortune-bloom-api.example.com'
+    apiBase: 'https://fortune-bloom-api.onrender.com'
   },
 
   // 会员生成上限
