@@ -2,18 +2,23 @@
  * server.js - 富贵花开 后端API服务
  * 
  * 功能:
- * 1. 代理通义万相 AI 图像风格化
+ * 1. 代理腾讯混元 AI 图像风格化（图生图）
  * 2. 微信登录
  * 3. 微信支付
+ * 
+ * AI 引擎: 腾讯混元生图 ImageToImage（同步接口，无需轮询）
  */
 
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const multer = require('multer')
-const axios = require('axios')
 const path = require('path')
 const fs = require('fs')
+
+// 腾讯云 SDK — 仅导入 aiart 模块
+const { aiart } = require('tencentcloud-sdk-nodejs-aiart')
+const AiartClient = aiart.v20221229.Client
 
 const app = express()
 const upload = multer({ 
@@ -22,7 +27,7 @@ const upload = multer({
 })
 
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '50mb' }))
 app.use('/static', express.static(path.join(__dirname, 'static')))
 
 // 确保静态目录存在
@@ -30,90 +35,91 @@ if (!fs.existsSync(path.join(__dirname, 'static'))) {
   fs.mkdirSync(path.join(__dirname, 'static'), { recursive: true })
 }
 
-// ========== 通义万相 API 配置 ==========
-const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY
-const DASHSCOPE_API = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/image-generation/generation'
+// ========== 腾讯混元 API 配置 ==========
+const TENCENT_SECRET_ID  = process.env.TENCENT_SECRET_ID
+const TENCENT_SECRET_KEY = process.env.TENCENT_SECRET_KEY
+const TENCENT_REGION     = process.env.TENCENT_REGION || 'ap-guangzhou'
 
-// 风格映射 (style_index)
-const STYLE_INDEX_MAP = {
-  peony: 14,     // 国风工笔 → 牡丹富贵
-  golden: 8,     // 清雅国风 → 金玉满堂
-  ink: 5,        // 国画古风 → 水墨丹青
-  cloud: 3,      // 小清新   → 祥云仙气
-  classic: 9     // 喜迎新年 → 古典年画
-}
-
-// ========== 通义万相 图像生成 ==========
-async function generateWithTongyi(imageBase64, styleId) {
-  const styleIndex = STYLE_INDEX_MAP[styleId] || 14
-  try {
-    const response = await axios.post(DASHSCOPE_API, {
-      model: 'wanx-style-repaint-v1',
-      input: {
-        image_url: imageBase64,
-        style_index: styleIndex
-      }
-    }, {
-      headers: {
-        'Authorization': `Bearer ${DASHSCOPE_API_KEY}`,
-        'Content-Type': 'application/json',
-        'X-DashScope-Async': 'enable'
+// 初始化腾讯云客户端（延迟初始化，避免空凭证报错）
+function getClient() {
+  if (!TENCENT_SECRET_ID || !TENCENT_SECRET_KEY) {
+    throw new Error('TENCENT_SECRET_ID / TENCENT_SECRET_KEY 未配置')
+  }
+  return new AiartClient({
+    credential: {
+      secretId: TENCENT_SECRET_ID,
+      secretKey: TENCENT_SECRET_KEY,
+    },
+    region: TENCENT_REGION,
+    profile: {
+      httpProfile: {
+        endpoint: 'aiart.tencentcloudapi.com',
+        reqTimeout: 30, // 30 秒超时（同步接口，无需轮询）
       },
-      timeout: 15000  // 15秒超时
-    })
-
-    if (response.data && response.data.output) {
-      const taskId = response.data.output.task_id
-      // 轮询等待结果
-      const result = await pollTaskResult(taskId)
-      return result
-    }
-    
-    return null
-  } catch (error) {
-    console.error('Tongyi API error:', error.message)
-    if (error.response) {
-      console.error('  Status:', error.response.status)
-      console.error('  Data:', JSON.stringify(error.response.data))
-    }
-    return null
-  }
+    },
+  })
 }
 
-// 轮询异步任务结果（20次 × 2秒 = 最多40秒，避免前端超时）
-async function pollTaskResult(taskId, maxRetries = 20) {
-  for (let i = 0; i < maxRetries; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    try {
-      const response = await axios.get(
-        `https://dashscope.aliyuncs.com/api/v1/tasks/${taskId}`,
-        { 
-          headers: { 'Authorization': `Bearer ${DASHSCOPE_API_KEY}` },
-          timeout: 10000  // 10秒超时
-        }
-      )
-      
-      const status = response.data.output.task_status
-      if (status === 'SUCCEEDED') {
-        return response.data.output.results[0].url
-      } else if (status === 'FAILED') {
-        console.error('Task failed:', response.data)
-        return null
+// ========== 风格映射（腾讯混元 Style ID） ==========
+const STYLE_CONFIG = {
+  peony:   { id: '125', prompt: '牡丹花开，富贵吉祥，国风工笔画风格，金红配色，华丽典雅' },
+  golden:  { id: '203', prompt: '金玉满堂，璀璨华美，唯美古风风格，金色光辉，雍容华贵' },
+  ink:     { id: '101', prompt: '水墨丹青，意境悠远，水墨画风格，墨色浓淡相宜，留白有韵' },
+  cloud:   { id: '203', prompt: '祥云缭绕，仙气飘飘，唯美古风风格，云纹环绕，轻盈梦幻' },
+  classic: { id: '128', prompt: '古典年画，喜庆祥和，国风娃娃画风格，色彩明艳，瑞兽吉祥' },
+}
+
+// ========== 腾讯混元 图像风格化 ==========
+async function generateWithHunyuan(imageBase64, styleId) {
+  const config = STYLE_CONFIG[styleId]
+  if (!config) throw new Error(`未知风格: ${styleId}`)
+
+  const client = getClient()
+
+  try {
+    const params = {
+      // InputImage 只传纯 base64，不带 data URI 前缀
+      InputImage: imageBase64.replace(/^data:image\/\w+;base64,/, ''),
+      Style: config.id,
+      Prompt: config.prompt,
+      ResultConfig: {
+        Resolution: '2048:2048'
       }
-    } catch (e) {
-      console.error('Poll error:', e.message)
     }
+
+    console.log(`🎨 调用腾讯混元: style=${styleId} (Style ID: ${config.id})`)
+    const response = await client.ImageToImage(params)
+    
+    if (response.ResultImage) {
+      console.log('✅ 混元生成成功')
+      // ResultImage 是 base64 字符串，转为 data URI
+      return `data:image/jpeg;base64,${response.ResultImage}`
+    }
+    
+    console.error('❌ 混元返回异常:', JSON.stringify(response))
+    return null
+    
+  } catch (error) {
+    console.error('❌ 腾讯混元 API 错误:', error.message)
+    if (error.code) {
+      console.error('  错误码:', error.code)
+      console.error('  错误详情:', error.message)
+    }
+    return null
   }
-  
-  return null
 }
 
 // ========== API 路由 ==========
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: '富贵花开 API' })
+  const status = {
+    status: 'ok',
+    service: '富贵花开 API',
+    engine: '腾讯混元生图',
+    configured: !!(TENCENT_SECRET_ID && TENCENT_SECRET_KEY)
+  }
+  res.json(status)
 })
 
 // 微信登录
@@ -124,8 +130,6 @@ app.post('/api/login', async (req, res) => {
     return res.json({ success: false, message: '缺少 code' })
   }
   
-  // 调用微信API换取 openid
-  // 生产环境使用真实API
   res.json({ 
     success: true, 
     openid: 'demo_' + code.substring(0, 8)
@@ -140,10 +144,14 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
     return res.json({ success: false, message: '请上传图片' })
   }
   
-  // 提前检查 API Key 是否配置
-  if (!DASHSCOPE_API_KEY) {
-    console.error('❌ DASHSCOPE_API_KEY 未配置！请在微信云托管环境变量中设置')
-    return res.json({ success: false, message: 'AI 服务未配置，请联系开发者' })
+  // 检查腾讯云凭证
+  if (!TENCENT_SECRET_ID || !TENCENT_SECRET_KEY) {
+    console.error('❌ 腾讯云凭证未配置！请在云托管环境变量中设置 TENCENT_SECRET_ID 和 TENCENT_SECRET_KEY')
+    return res.json({ success: false, message: 'AI 服务未配置，请联系开发者设置腾讯云密钥' })
+  }
+
+  if (!STYLE_CONFIG[style]) {
+    return res.json({ success: false, message: `未知风格: ${style}` })
   }
   
   try {
@@ -151,10 +159,10 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
     
     // 将图片转为 base64
     const imageBase64 = req.file.buffer.toString('base64')
-    console.log(`🔄 调用通义万相 API (wanx-style-repaint-v1)...`)
+    const dataUri = `data:image/jpeg;base64,${imageBase64}`
     
-    // 调用通义万相（新版 wanx-style-repaint-v1）
-    const resultUrl = await generateWithTongyi(`data:image/jpeg;base64,${imageBase64}`, style)
+    // 调用腾讯混元（同步接口，直接返回结果，无需轮询！）
+    const resultUrl = await generateWithHunyuan(dataUri, style)
     
     if (resultUrl) {
       res.json({ 
@@ -163,15 +171,14 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
         style: style
       })
     } else {
-      // API调用失败，返回错误
       res.json({ 
         success: false, 
-        message: 'AI 生成失败，请检查 API Key 是否正确配置，或稍后重试'
+        message: 'AI 生成失败，请换张照片试试，或稍后重试'
       })
     }
   } catch (error) {
     console.error('Generate error:', error)
-    res.json({ success: false, message: '生成失败，请重试' })
+    res.json({ success: false, message: '服务异常，请稍后重试' })
   }
 })
 
@@ -179,8 +186,6 @@ app.post('/api/generate', upload.single('image'), async (req, res) => {
 app.post('/api/pay', async (req, res) => {
   const { plan, amount, openId } = req.body
   
-  // 生产环境: 调用微信支付统一下单API
-  // 这里返回模拟数据
   res.json({
     success: true,
     payParams: {
@@ -197,5 +202,7 @@ app.post('/api/pay', async (req, res) => {
 app.listen(process.env.PORT || 80, () => {
   const port = process.env.PORT || 80
   console.log(`🌸 富贵花开 API 服务已启动: http://localhost:${port}`)
+  console.log(`🎨 AI 引擎: 腾讯混元生图 (ImageToImage)`)
+  console.log(`🔑 腾讯云密钥: ${TENCENT_SECRET_ID ? '✅ 已配置' : '❌ 未配置'}`)
   console.log(`📋 健康检查: http://localhost:${port}/api/health`)
 })
