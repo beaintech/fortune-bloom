@@ -216,9 +216,12 @@ Page({
       wx.setStorageSync('gallery', history.slice(0, 50))
       this.setData({ generating: false })
       this.updateCount()
-      wx.navigateTo({
-        url: '/pages/result/result?imageUrl=' + encodeURIComponent(filePath) + '&style=' + styleId
-      })
+      // 延迟跳转，避免微信框架报 __subPageFrameEndTime__ 内部错误
+      setTimeout(() => {
+        wx.navigateTo({
+          url: '/pages/result/result?imageUrl=' + encodeURIComponent(filePath) + '&style=' + styleId
+        })
+      }, 50)
     }
 
     // 如果是 base64 data URI，写入本地文件
