@@ -17,7 +17,10 @@ Page({
   },
 
   loadGallery() {
-    const list = wx.getStorageSync('gallery') || []
+    let list = wx.getStorageSync('gallery') || []
+    // 清理无效/失败的记录（旧版可能存了空白路径）
+    list = list.filter(item => item.result && item.result !== '/static/demo-result.jpg')
+    wx.setStorageSync('gallery', list)
     this.setData({ list: list.slice(0, 30) })
   },
 

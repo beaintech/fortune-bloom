@@ -202,22 +202,39 @@ Page({
       }
     }
 
-    const history = wx.getStorageSync('gallery') || []
-    history.unshift({
-      id: Date.now(),
-      original: this.data.previewImage,
-      result: resultPath,
-      style: styleId,
-      time: new Date().toLocaleString()
-    })
-    wx.setStorageSync('gallery', history.slice(0, 50))
+    // 将 base64 图片写入本地文件，避免 gallery 存几 MB 的 data URI
+    const saveResultToGallery = (filePath) => {
+      const history = wx.getStorageSync('gallery') || []
+      // 只存原图路径 + 结果图文件路径，不存 base64
+      history.unshift({
+        id: Date.now(),
+        original: this.data.previewImage,
+        result: filePath,
+        style: styleId,
+        time: new Date().toISOString()
+      })
+      wx.setStorageSync('gallery', history.slice(0, 50))
+      this.setData({ generating: false })
+      this.updateCount()
+      wx.navigateTo({
+        url: '/pages/result/result?imageUrl=' + encodeURIComponent(filePath) + '&style=' + styleId
+      })
+    }
 
-    this.setData({ generating: false })
-    this.updateCount()
-
-    wx.navigateTo({
-      url: '/pages/result/result?imageUrl=' + encodeURIComponent(resultPath) + '&style=' + styleId
-    })
+    // 如果是 base64 data URI，写入本地文件
+    if (resultPath && resultPath.startsWith('data:image')) {
+      const fs = wx.getFileSystemManager()
+      const filePath = wx.env.USER_DATA_PATH + '/result_' + Date.now() + '.jpg'
+      fs.writeFile({
+        filePath: filePath,
+        data: resultPath.replace(/^data:image\/\w+;base64,/, ''),
+        encoding: 'base64',
+        success: () => saveResultToGallery(filePath),
+        fail: () => saveResultToGallery(resultPath) // 回退：存原始 data URI
+      })
+    } else {
+      saveResultToGallery(resultPath)
+    }
   },
 
   // ========== 通过后端代理调用腾讯混元（正式模式）==========

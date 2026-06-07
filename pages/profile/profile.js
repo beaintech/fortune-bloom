@@ -10,6 +10,7 @@ Page({
     todayGenerated: 0,
     remainingStyles: 5,
     vipUsageText: '',
+    _avatarTapCount: 0,
     vipFeatures: [
       { icon: '🎨', text: '日卡10张/月卡50张/年卡300张' },
       { icon: '⚡', text: '高速生成 · 优先处理' },
@@ -36,10 +37,10 @@ Page({
 
   loadStats() {
     const gallery = wx.getStorageSync('gallery') || []
-    // 计算今日生成数
-    const today = new Date().toLocaleDateString()
+    // 计算今日生成数（用 ISO 日期前缀比��）
+    const todayPrefix = new Date().toISOString().substring(0, 10)
     const todayCount = gallery.filter(item => {
-      return item.time && item.time.startsWith(today)
+      return item.time && item.time.substring(0, 10) === todayPrefix
     }).length
 
     // VIP 已用/剩余
@@ -191,5 +192,21 @@ Page({
       showCancel: false,
       confirmText: '知道了'
     })
+  },
+
+  // 🔧 开发调试：连击头像 5 次重置免费额度
+  onAvatarTap() {
+    let count = (this.data._avatarTapCount || 0) + 1
+    this.setData({ _avatarTapCount: count })
+    if (count >= 5) {
+      this.setData({ _avatarTapCount: 0 })
+      wx.setStorageSync('freeStylesUsed', [])
+      const app = getApp()
+      app.globalData.freeStylesUsed = []
+      this.loadStats()
+      wx.showToast({ title: '✅ 免费额度已重置', icon: 'none', duration: 1500 })
+    } else if (count >= 3) {
+      wx.showToast({ title: `再点 ${5 - count} 次重置额度`, icon: 'none', duration: 800 })
+    }
   }
 })
