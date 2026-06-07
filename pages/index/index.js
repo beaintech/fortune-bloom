@@ -174,6 +174,7 @@ Page({
   doGenerate(isAdUnlock) {
     const styleId = this.data.selectedStyle
     this.setData({ generating: true })
+    wx.showLoading({ title: 'AI 生成中...', mask: true })
 
     // ✅ 生产模式：统一走云托管后端（腾讯混元生图）
     if (DEBUG_MODE || app.globalData.apiBase.includes('example.com')) {
@@ -225,21 +226,47 @@ Page({
       url: app.globalData.apiBase + '/api/generate',
       filePath: this.data.previewImage,
       name: 'image',
+      timeout: 90000,   // 90秒超时（混元生图同步接口，通常5-15秒）
       formData: {
         style: styleId,
         openId: app.globalData.openId || ''
       },
       success: (res) => {
-        const data = JSON.parse(res.data)
+        // 防御性解析：如果后端返回 HTML 错误页，捕获解析错误
+        let data
+        try {
+          data = JSON.parse(res.data)
+        } catch (e) {
+          console.error('[生成] 后端返回非JSON:', res.statusCode, res.data && res.data.substring(0, 200))
+          wx.hideLoading()
+          wx.showModal({
+            title: '服务暂时不可用',
+            content: '后端服务正在更新，请1分钟后再试',
+            showCancel: false
+          })
+          this.setData({ generating: false })
+          return
+        }
+
+        wx.hideLoading()
         if (data.success) {
           this.afterGenerate(styleId, isAdUnlock, data.resultUrl)
         } else {
-          wx.showToast({ title: data.message || '生成失败', icon: 'none' })
+          wx.showModal({
+            title: 'AI 生成失败',
+            content: data.message || '生成失败，请换张照片或稍后重试',
+            showCancel: false
+          })
           this.setData({ generating: false })
         }
       },
-      fail: () => {
-        wx.showToast({ title: '网络错误，请重试', icon: 'none' })
+      fail: (err) => {
+        wx.hideLoading()
+        console.error('[生成] uploadFile失败:', err)
+        const msg = err.errMsg && err.errMsg.includes('timeout')
+          ? '请求超时，请检查网络后重试'
+          : '网络错误，请重试'
+        wx.showToast({ title: msg, icon: 'none' })
         this.setData({ generating: false })
       }
     })
